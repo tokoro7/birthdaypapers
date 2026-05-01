@@ -43,7 +43,21 @@ const getArticlesByDateRoute = createRoute({
   summary: '指定日の NYT 記事一覧を取得',
 });
 
-export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>().openapi(
+export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
+  defaultHook: (result, c) => {
+    if (!result.success) {
+      return c.json(
+        {
+          error: 'Invalid request',
+          detail: result.error.issues
+            .map((i) => `${i.path.join('.')}: ${i.message}`)
+            .join(', '),
+        },
+        400,
+      );
+    }
+  },
+}).openapi(
   getArticlesByDateRoute,
   async (c) => {
     const { date } = c.req.valid('param');
