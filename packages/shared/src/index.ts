@@ -1,10 +1,4 @@
-export type Article = {
-  id: string;
-  date: string;
-  headline: string;
-  url: string;
-  source: string;
-};
+export * from './schemas/article';
 
 export type Summary = {
   articleId: string;
