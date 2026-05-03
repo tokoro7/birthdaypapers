@@ -46,6 +46,7 @@ function App() {
       <main className="page">
         <header className="hero">
           <h1>Birthday Papers</h1>
+          <p className="tagline">Discover the headlines from your special day.</p>
         </header>
 
         <section className="card">
