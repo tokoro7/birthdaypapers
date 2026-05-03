@@ -45,8 +45,8 @@ const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
 
 const getArticlesByDateRoute = createRoute({
   method: 'get',
-  path: '/articles/{date}',
-  request: { params: DateParamSchema },
+  path: '/articles',
+  request: { query: DateParamSchema },
   responses: {
     200: {
       content: { 'application/json': { schema: ArticleListSchema } },
@@ -86,7 +86,7 @@ export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
 }).openapi(
   getArticlesByDateRoute,
   async (c) => {
-    const { date } = c.req.valid('param');
+    const { date } = c.req.valid('query');
 
     const cached = await c.env.ARTICLES_KV.get<Article[]>(kvKey(date), 'json');
     if (cached) {

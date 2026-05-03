@@ -5,7 +5,7 @@ export const DateParamSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
     .openapi({
-      param: { name: 'date', in: 'path' },
+      param: { name: 'date', in: 'query' },
       example: '2000-01-30',
     }),
 });
