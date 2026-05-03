@@ -1,122 +1,76 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react';
+import type { Article } from '@birthdaypapers/shared';
+import { client } from './api';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchArticles = async (target: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const maxAttempts = 6;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const res = await client.articles.$get({ query: { date: target } });
+        if (res.ok) {
+          setArticles(await res.json());
+          return;
+        }
+        if (res.status !== 202) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        if (attempt < maxAttempts - 1) {
+          const baseMs = 1000 * 2 ** attempt;
+          const jitter = Math.random() * 0.3 * baseMs;
+          await new Promise((r) => setTimeout(r, baseMs + jitter));
+        }
+      }
+      throw new Error('Cache fill timed out');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error');
+      setArticles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchArticles(date);
+  }, []);
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+      <h1>Birthday Papers</h1>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        <button type="button" onClick={() => fetchArticles(date)} disabled={loading}>
+          {loading ? 'Loading...' : 'Fetch'}
         </button>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <ul>
+        {articles.map((a) => (
+          <li key={a.id}>
+            <a href={a.url} target="_blank" rel="noreferrer">
+              {a.headline}
+            </a>
+            <span style={{ marginLeft: '0.5rem', color: '#666' }}>
+              ({a.source} / {a.date})
+            </span>
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
 }
 
-export default App
+export default App;
