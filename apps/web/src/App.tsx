@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { Article } from '@birthdaypapers/shared';
 import { client } from './api';
+import { BackgroundVideo } from './BackgroundVideo';
+import './App.css';
 
 function App() {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState('2000-01-01');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +17,9 @@ function App() {
       const maxAttempts = 6;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const res = await client.articles.$get({ query: { date: target } });
-        if (res.ok) {
-          setArticles(await res.json());
+        if (res.status === 200) {
+          const data = (await res.json()) as Article[];
+          setArticles(data);
           return;
         }
         if (res.status !== 202) {
@@ -37,39 +40,43 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    fetchArticles(date);
-  }, []);
-
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Birthday Papers</h1>
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
-        <button type="button" onClick={() => fetchArticles(date)} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch'}
-        </button>
-      </div>
+    <>
+      <BackgroundVideo />
+      <main className="page">
+        <header className="hero">
+          <h1>Birthday Papers</h1>
+        </header>
 
-      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+        <section className="card">
+          <div className="controls">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <button type="button" onClick={() => fetchArticles(date)} disabled={loading}>
+              {loading ? 'Loading...' : 'Fetch'}
+            </button>
+          </div>
 
-      <ul>
-        {articles.map((a) => (
-          <li key={a.id}>
-            <a href={a.url} target="_blank" rel="noreferrer">
-              {a.headline}
-            </a>
-            <span style={{ marginLeft: '0.5rem', color: '#666' }}>
-              ({a.source} / {a.date})
-            </span>
-          </li>
-        ))}
-      </ul>
-    </main>
+          {error && <p className="error">Error: {error}</p>}
+
+          <ul className="articles">
+            {articles.map((a) => (
+              <li key={a.id}>
+                <a href={a.url} target="_blank" rel="noreferrer">
+                  {a.headline}
+                </a>
+                <span className="meta">
+                  {a.source} / {a.date}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </main>
+    </>
   );
 }
 
