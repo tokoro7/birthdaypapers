@@ -2,19 +2,19 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "api",
   "main": "src/index.ts",
-  "compatibility_date": "2026-04-29"
+  "compatibility_date": "2026-04-29",
+  "kv_namespaces": [
+    {
+      "binding": "ARTICLES_KV",
+      "id": "local-dev"
+    }
+  ],
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
   // "vars": {
   //   "MY_VAR": "my-variable"
   // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
   // "r2_buckets": [
   //   {
   //     "binding": "MY_BUCKET",

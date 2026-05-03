@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  type Article,
   ArticleListSchema,
   DateParamSchema,
   ErrorSchema,
@@ -13,8 +14,33 @@ type NytArchiveResponse = {
       web_url?: string;
       headline?: { main?: string };
       pub_date?: string;
+      section_name?: string;
+      type_of_material?: string;
     }>;
   };
+};
+
+const kvKey = (date: string) => `articles:nyt:${date}`;
+
+const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
+  const byDay = new Map<string, Article[]>();
+  for (const d of data.response?.docs ?? []) {
+    if (!d._id || !d.web_url || !d.headline?.main || !d.pub_date) continue;
+    const date = d.pub_date.slice(0, 10);
+    const article: Article = {
+      id: d._id,
+      date,
+      headline: d.headline.main,
+      url: d.web_url,
+      source: 'NYT',
+      section: d.section_name,
+      type: d.type_of_material,
+    };
+    const list = byDay.get(date);
+    if (list) list.push(article);
+    else byDay.set(date, [article]);
+  }
+  return byDay;
 };
 
 const getArticlesByDateRoute = createRoute({
@@ -62,6 +88,11 @@ export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
   async (c) => {
     const { date } = c.req.valid('param');
 
+    const cached = await c.env.ARTICLES_KV.get<Article[]>(kvKey(date), 'json');
+    if (cached) {
+      return c.json(cached, 200);
+    }
+
     const apiKey = c.env.NYT_API_KEY;
     if (!apiKey) {
       return c.json({ error: 'NYT_API_KEY is not configured' }, 500);
@@ -83,24 +114,14 @@ export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
     }
 
     const data = (await res.json()) as NytArchiveResponse;
-    const docs = data.response?.docs ?? [];
+    const byDay = splitByDay(data);
 
-    const articles = docs
-      .filter(
-        (d) =>
-          d._id &&
-          d.web_url &&
-          d.headline?.main &&
-          d.pub_date?.slice(0, 10) === date,
-      )
-      .map((d) => ({
-        id: d._id!,
-        date: d.pub_date!.slice(0, 10),
-        headline: d.headline!.main!,
-        url: d.web_url!,
-        source: 'NYT',
-      }));
+    await Promise.all(
+      [...byDay].map(([d, articles]) =>
+        c.env.ARTICLES_KV.put(kvKey(d), JSON.stringify(articles)),
+      ),
+    );
 
-    return c.json(articles, 200);
+    return c.json(byDay.get(date) ?? [], 200);
   },
 );
