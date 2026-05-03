@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type Article,
   ArticleListSchema,
@@ -20,7 +20,8 @@ type NytArchiveResponse = {
   };
 };
 
-const kvKey = (date: string) => `articles:nyt:${date}`;
+const dayKey = (date: string) => `articles:nyt:${date}`;
+const fetchingKey = (date: string) => `articles:nyt:${date.slice(0, 7)}:fetching`;
 
 const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
   const byDay = new Map<string, Article[]>();
@@ -43,6 +44,17 @@ const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
   return byDay;
 };
 
+const enumerateDays = (year: number, month: number): string[] => {
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Array.from({ length: lastDay }, (_, i) =>
+    `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
+  );
+};
+
+const PendingSchema = z
+  .object({ status: z.literal('pending') })
+  .openapi('Pending');
+
 const getArticlesByDateRoute = createRoute({
   method: 'get',
   path: '/articles',
@@ -56,17 +68,17 @@ const getArticlesByDateRoute = createRoute({
       content: { 'application/json': { schema: ErrorSchema } },
       description: 'date 形式が不正',
     },
+    202: {
+      content: { 'application/json': { schema: PendingSchema } },
+      description: 'キャッシュ準備中。少し待って再試行を',
+    },
     500: {
       content: { 'application/json': { schema: ErrorSchema } },
       description: 'サーバ設定エラー',
     },
-    502: {
-      content: { 'application/json': { schema: ErrorSchema } },
-      description: 'NYT API のエラー',
-    },
   },
   tags: ['Articles'],
-  summary: '指定日の NYT 記事一覧を取得',
+  summary: '指定日の NYT 記事一覧を取得（キャッシュのみ）',
 });
 
 export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
@@ -88,40 +100,45 @@ export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
   async (c) => {
     const { date } = c.req.valid('query');
 
-    const cached = await c.env.ARTICLES_KV.get<Article[]>(kvKey(date), 'json');
-    if (cached) {
-      return c.json(cached, 200);
-    }
+    const cached = await c.env.ARTICLES_KV.get<Article[]>(dayKey(date), 'json');
+    if (cached) return c.json(cached, 200);
+
+    const isFetching = await c.env.ARTICLES_KV.get(fetchingKey(date));
+    if (isFetching) return c.json({ status: 'pending' as const }, 202);
 
     const apiKey = c.env.NYT_API_KEY;
     if (!apiKey) {
       return c.json({ error: 'NYT_API_KEY is not configured' }, 500);
     }
 
-    const [year, month] = date.split('-');
-    const url = new URL(
-      `https://api.nytimes.com/svc/archive/v1/${year}/${Number(month)}.json`,
+    await c.env.ARTICLES_KV.put(fetchingKey(date), '1', { expirationTtl: 60 });
+
+    c.executionCtx.waitUntil(
+      (async () => {
+        try {
+          const [year, month] = date.split('-').map(Number);
+          const url = new URL(
+            `https://api.nytimes.com/svc/archive/v1/${year}/${month}.json`,
+          );
+          url.searchParams.set('api-key', apiKey);
+
+          const res = await fetch(url.toString());
+          if (!res.ok) return;
+
+          const data = (await res.json()) as NytArchiveResponse;
+          const byDay = splitByDay(data);
+          const allDays = enumerateDays(year, month);
+          await Promise.all(
+            allDays.map((d) =>
+              c.env.ARTICLES_KV.put(dayKey(d), JSON.stringify(byDay.get(d) ?? [])),
+            ),
+          );
+        } finally {
+          await c.env.ARTICLES_KV.delete(fetchingKey(date));
+        }
+      })(),
     );
-    url.searchParams.set('api-key', apiKey);
 
-    const res = await fetch(url.toString());
-    if (!res.ok) {
-      const body = await res.text();
-      return c.json(
-        { error: `NYT API error: ${res.status}`, detail: body.slice(0, 500) },
-        502,
-      );
-    }
-
-    const data = (await res.json()) as NytArchiveResponse;
-    const byDay = splitByDay(data);
-
-    await Promise.all(
-      [...byDay].map(([d, articles]) =>
-        c.env.ARTICLES_KV.put(kvKey(d), JSON.stringify(articles)),
-      ),
-    );
-
-    return c.json(byDay.get(date) ?? [], 200);
+    return c.json({ status: 'pending' as const }, 202);
   },
 );
