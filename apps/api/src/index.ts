@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { swaggerUI } from '@hono/swagger-ui';
 import { cors } from 'hono/cors';
 import { articlesApp } from './routes/articles';
+import { digestApp } from './routes/digest';
 import type { Bindings } from './bindings';
 
 const app = new OpenAPIHono<{ Bindings: Bindings }>();
@@ -13,7 +14,7 @@ app.use('/*', (c, next) =>
   })(c, next),
 );
 
-const routes = app.route('/', articlesApp);
+const routes = app.route('/', articlesApp).route('/', digestApp);
 
 app.doc31('/doc', {
   openapi: '3.1.0',
