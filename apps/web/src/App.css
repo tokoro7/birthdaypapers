@@ -84,11 +84,24 @@
   margin-bottom: 12px;
 }
 
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: 0.4px;
+  margin: 0 0 12px;
+}
+
+.section-title + .section-title,
+.digest-summary + .section-title {
+  margin-top: 24px;
+}
+
 .digest-summary {
   font-size: 16px;
   line-height: 1.6;
   color: var(--text-h);
-  margin: 0 0 20px;
+  margin: 0;
   padding: 16px;
   background: rgba(255, 255, 255, 0.04);
   border-left: 2px solid var(--text-h);

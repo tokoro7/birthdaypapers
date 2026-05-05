@@ -85,7 +85,13 @@ function App() {
 
           {digest && (
             <>
-              {digest.summary && <p className="digest-summary">{digest.summary}</p>}
+              {digest.summary && (
+                <>
+                  <h2 className="section-title">要約</h2>
+                  <p className="digest-summary">{digest.summary}</p>
+                </>
+              )}
+              <h2 className="section-title">主な記事</h2>
               <ul className="picks">
                 {digest.picks.map((p) => {
                   const article = articleMap.get(p.id);
