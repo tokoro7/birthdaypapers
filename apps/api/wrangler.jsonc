@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "api",
+  "name": "birthdaypapers-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-04-29",
   "kv_namespaces": [
@@ -9,12 +9,12 @@
       "id": "dbcd2d298ec64f2b8744be3a7c334dc6"
     }
   ],
+  "vars": {
+    "ALLOWED_ORIGIN": "https://placeholder-eahwiufheaoituhetaw.invalid"
+  },
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
   // "r2_buckets": [
   //   {
   //     "binding": "MY_BUCKET",
