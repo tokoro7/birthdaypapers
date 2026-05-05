@@ -42,7 +42,7 @@
 
 両方を GitHub Actions に揃える流儀もあり。好みで。
 
-**採用**: API は GitHub Actions、Web は Pages の GitHub 連携。
+**採用**: API・Web ともに GitHub Actions で統一。Web の PR プレビュー URL は当面なし（必要になったら `wrangler pages deploy --branch <PR名>` を仕込んで追加可能）。
 
 ### パブリックリポジトリでの注意点
 
@@ -83,8 +83,8 @@
 | 項目 | 決定 |
 |---|---|
 | ブランチ戦略 | A: `main` + `develop` + `feature/*` の三ブランチ構成 |
-| Web デプロイ手段 | A: Cloudflare Pages の GitHub 連携 |
-| API プレビュー環境 | TBD |
+| Web デプロイ手段 | B: GitHub Actions で `wrangler pages deploy`（PR プレビューは当面なし） |
+| API プレビュー環境 | 当面は作らない（後から追加可能） |
 
 ## 実装手順（決定後に詳細化）
 
