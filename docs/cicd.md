@@ -42,7 +42,19 @@
 
 両方を GitHub Actions に揃える流儀もあり。好みで。
 
-**未決**
+**採用**: API は GitHub Actions、Web は Pages の GitHub 連携。
+
+### パブリックリポジトリでの注意点
+
+リポジトリを public にする前提のため、以下を遵守する。
+
+- Secrets は必ず GitHub Secrets / Cloudflare Dashboard 側に置く。コード・`wrangler.jsonc`・env ファイルに直書きしない。
+- `.dev.vars` / `.env.production` は gitignore 済みであることを維持。
+- GitHub Actions のトリガーは保護ブランチの `push` 限定。`pull_request_target` は使わない（フォーク PR から secrets が漏れる代表的な穴）。
+- ブランチ保護: `main` と `develop` に PR 必須・CI 通過必須・直 push 禁止を設定。
+- Pages のフォーク PR プレビュービルドはオフまたは承認制にする。
+- Pages の env vars には機密を入れない（現状 `VITE_API_URL` のみで問題なし）。
+- `CLOUDFLARE_API_TOKEN` は GitHub Secrets に登録し、API デプロイ workflow からのみ参照。
 
 ### 3. GitHub Secrets / Variables
 
@@ -71,7 +83,7 @@
 | 項目 | 決定 |
 |---|---|
 | ブランチ戦略 | A: `main` + `develop` + `feature/*` の三ブランチ構成 |
-| Web デプロイ手段 | TBD |
+| Web デプロイ手段 | A: Cloudflare Pages の GitHub 連携 |
 | API プレビュー環境 | TBD |
 
 ## 実装手順（決定後に詳細化）
