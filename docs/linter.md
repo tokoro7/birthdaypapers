@@ -21,12 +21,12 @@
 
 flat config の配列順で、後ろの設定が前を上書きする。
 
-| 対象 | 適用される設定 | グローバル |
-|---|---|---|
-| `**/*.{ts,tsx}` (土台) | `js.configs.recommended` + `tseslint.configs.recommended` | なし |
-| `apps/web/**/*.{ts,tsx}` | + React Hooks 推奨 + React Refresh (vite) | `globals.browser` |
-| `apps/api/**/*.ts` | (土台のみ) | `globals.worker` (Cloudflare Workers) |
-| `packages/shared/**/*.ts` | (土台のみ) | なし (環境非依存) |
+| 対象                      | 適用される設定                                            | グローバル                            |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------- |
+| `**/*.{ts,tsx}` (土台)    | `js.configs.recommended` + `tseslint.configs.recommended` | なし                                  |
+| `apps/web/**/*.{ts,tsx}`  | + React Hooks 推奨 + React Refresh (vite)                 | `globals.browser`                     |
+| `apps/api/**/*.ts`        | (土台のみ)                                                | `globals.worker` (Cloudflare Workers) |
+| `packages/shared/**/*.ts` | (土台のみ)                                                | なし (環境非依存)                     |
 
 ## ルール調整
 

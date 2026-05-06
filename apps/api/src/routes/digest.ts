@@ -120,10 +120,7 @@ export const digestApp = new OpenAPIHono<{ Bindings: Bindings }>({
       (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use',
     );
     if (!toolUse) {
-      return c.json(
-        { error: 'Model did not return a tool_use block' },
-        502,
-      );
+      return c.json({ error: 'Model did not return a tool_use block' }, 502);
     }
 
     const validated = DigestResponseSchema.parse(toolUse.input);

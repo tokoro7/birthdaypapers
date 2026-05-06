@@ -30,10 +30,10 @@
 
 ### 2. デプロイ手段
 
-| | 手段 A | 手段 B |
-|---|---|---|
-| API (Workers) | GitHub Actions で `wrangler deploy` | （Pages のような GitHub 連携機能は無し） |
-| Web (Pages) | Cloudflare Pages の GitHub 連携 | GitHub Actions で `wrangler pages deploy` |
+|               | 手段 A                              | 手段 B                                    |
+| ------------- | ----------------------------------- | ----------------------------------------- |
+| API (Workers) | GitHub Actions で `wrangler deploy` | （Pages のような GitHub 連携機能は無し）  |
+| Web (Pages)   | Cloudflare Pages の GitHub 連携     | GitHub Actions で `wrangler pages deploy` |
 
 推奨:
 
@@ -80,11 +80,11 @@
 
 ## 決定事項（埋めていく）
 
-| 項目 | 決定 |
-|---|---|
-| ブランチ戦略 | A: `main` + `develop` + `feature/*` の三ブランチ構成 |
-| Web デプロイ手段 | B: GitHub Actions で `wrangler pages deploy`（PR プレビューは当面なし） |
-| API プレビュー環境 | 当面は作らない（後から追加可能） |
+| 項目               | 決定                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| ブランチ戦略       | A: `main` + `develop` + `feature/*` の三ブランチ構成                    |
+| Web デプロイ手段   | B: GitHub Actions で `wrangler pages deploy`（PR プレビューは当面なし） |
+| API プレビュー環境 | 当面は作らない（後から追加可能）                                        |
 
 ## 実装手順（決定後に詳細化）
 

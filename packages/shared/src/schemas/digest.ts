@@ -5,7 +5,9 @@ export const DigestLangSchema = z.enum(['ja', 'en']).openapi({ example: 'ja' });
 export const DigestArticleInputSchema = z
   .object({
     id: z.string().openapi({ example: 'nyt://article/abc123' }),
-    headline: z.string().openapi({ example: 'Markets Plunge as Investors Worry' }),
+    headline: z
+      .string()
+      .openapi({ example: 'Markets Plunge as Investors Worry' }),
     section: z.string().optional().openapi({ example: 'Business Day' }),
   })
   .openapi('DigestArticleInput');
@@ -20,7 +22,9 @@ export const DigestRequestSchema = z
 export const DigestPickSchema = z
   .object({
     id: z.string().openapi({ example: 'nyt://article/abc123' }),
-    summary: z.string().openapi({ example: '株価が急落。投資家は景気後退を懸念。' }),
+    summary: z
+      .string()
+      .openapi({ example: '株価が急落。投資家は景気後退を懸念。' }),
   })
   .openapi('DigestPick');
 

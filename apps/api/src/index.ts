@@ -9,8 +9,7 @@ const app = new OpenAPIHono<{ Bindings: Bindings }>();
 
 app.use('/*', (c, next) =>
   cors({
-    origin: (origin) =>
-      origin === c.env.ALLOWED_ORIGIN ? origin : null,
+    origin: (origin) => (origin === c.env.ALLOWED_ORIGIN ? origin : null),
   })(c, next),
 );
 
