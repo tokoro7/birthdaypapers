@@ -21,12 +21,12 @@
 
 flat config の配列順で、後ろの設定が前を上書きする。
 
-| 対象 | 適用される設定 | グローバル |
-|---|---|---|
-| `**/*.{ts,tsx}` (土台) | `js.configs.recommended` + `tseslint.configs.recommended` | なし |
-| `apps/web/**/*.{ts,tsx}` | + React Hooks 推奨 + React Refresh (vite) | `globals.browser` |
-| `apps/api/**/*.ts` | (土台のみ) | `globals.worker` (Cloudflare Workers) |
-| `packages/shared/**/*.ts` | (土台のみ) | なし (環境非依存) |
+| 対象                      | 適用される設定                                            | グローバル                            |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------- |
+| `**/*.{ts,tsx}` (土台)    | `js.configs.recommended` + `tseslint.configs.recommended` | なし                                  |
+| `apps/web/**/*.{ts,tsx}`  | + React Hooks 推奨 + React Refresh (vite)                 | `globals.browser`                     |
+| `apps/api/**/*.ts`        | (土台のみ)                                                | `globals.worker` (Cloudflare Workers) |
+| `packages/shared/**/*.ts` | (土台のみ)                                                | なし (環境非依存)                     |
 
 ## ルール調整
 
@@ -58,7 +58,10 @@ pnpm lint
 
 `.github/workflows/ci.yml` の `check` ジョブで、`main` / `develop` 向け PR 時に `pnpm install --frozen-lockfile` の直後に `pnpm lint` を実行する。`pnpm typecheck` の前に配置し、軽い検査から先に失敗させる。
 
+## Formatter との連携
+
+整形は Prettier 側に分離している。`eslint.config.js` 末尾で `eslint-config-prettier/flat` を読み込み、ESLint 側の整形系ルールを無効化することで衝突を避ける。詳細は [prettier.md](./prettier.md)。
+
 ## 既知の制約 / 拡張ポイント
 
 - 型情報ベースのルール (`@typescript-eslint/no-floating-promises` など) は未導入。`tseslint.configs.recommendedTypeChecked` への切り替えと `parserOptions.project` の設定で追加可能。Cloudflare Workers の `await` 取りこぼし対策として将来検討余地あり。
-- Formatter は未導入。Prettier や Biome を入れる場合はこの設定とは独立に管理する。

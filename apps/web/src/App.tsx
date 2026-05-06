@@ -66,7 +66,9 @@ function App() {
       <main className="page">
         <header className="hero">
           <h1>Birthday Papers</h1>
-          <p className="tagline">Discover the headlines from your special day.</p>
+          <p className="tagline">
+            Discover the headlines from your special day.
+          </p>
         </header>
 
         <section className="card">
@@ -76,7 +78,11 @@ function App() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
-            <button type="button" onClick={() => fetchDigest(date)} disabled={loading}>
+            <button
+              type="button"
+              onClick={() => fetchDigest(date)}
+              disabled={loading}
+            >
               {loading ? 'Loading...' : 'Fetch'}
             </button>
           </div>

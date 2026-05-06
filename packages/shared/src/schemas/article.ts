@@ -14,8 +14,13 @@ export const ArticleSchema = z
   .object({
     id: z.string().openapi({ example: 'nyt://article/abc123' }),
     date: z.string().openapi({ example: '2000-01-30' }),
-    headline: z.string().openapi({ example: 'Markets Plunge as Investors Worry' }),
-    url: z.string().url().openapi({ example: 'https://www.nytimes.com/2000/01/30/...' }),
+    headline: z
+      .string()
+      .openapi({ example: 'Markets Plunge as Investors Worry' }),
+    url: z
+      .string()
+      .url()
+      .openapi({ example: 'https://www.nytimes.com/2000/01/30/...' }),
     source: z.string().openapi({ example: 'NYT' }),
     section: z.string().optional().openapi({ example: 'Business Day' }),
     type: z.string().optional().openapi({ example: 'News' }),

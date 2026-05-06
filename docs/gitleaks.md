@@ -8,10 +8,10 @@
 
 ## 二段構えの全体像
 
-| 層 | 実行タイミング | 対象 | スキップ可否 |
-|---|---|---|---|
-| pre-commit | ローカルでの `git commit` 時 | ステージされた差分のみ | `--no-verify` でスキップ可 |
-| CI | `develop` / `main` への PR 時 | PR 差分（push 時は履歴全体） | スキップ不可（PR マージ条件） |
+| 層         | 実行タイミング                | 対象                         | スキップ可否                  |
+| ---------- | ----------------------------- | ---------------------------- | ----------------------------- |
+| pre-commit | ローカルでの `git commit` 時  | ステージされた差分のみ       | `--no-verify` でスキップ可    |
+| CI         | `develop` / `main` への PR 時 | PR 差分（push 時は履歴全体） | スキップ不可（PR マージ条件） |
 
 ローカルで pre-commit を `--no-verify` でスキップしても CI 側で必ず引っかかるため、リポジトリ全体としての防御は維持される。
 
@@ -73,7 +73,7 @@ regexes = ['''EXAMPLE_KEY_.*''']
 行末に `# gitleaks:allow` を付けるとその行だけ無視される:
 
 ```ts
-const dummyKey = "AKIAIOSFODNN7EXAMPLE" // gitleaks:allow
+const dummyKey = 'AKIAIOSFODNN7EXAMPLE'; // gitleaks:allow
 ```
 
 ただし「本物のキーを誤って allow する」のが一番怖いパターンなので、インライン抑制は最小限に。

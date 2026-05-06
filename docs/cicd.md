@@ -30,10 +30,10 @@
 
 ### 2. デプロイ手段
 
-| | 手段 A | 手段 B |
-|---|---|---|
-| API (Workers) | GitHub Actions で `wrangler deploy` | （Pages のような GitHub 連携機能は無し） |
-| Web (Pages) | Cloudflare Pages の GitHub 連携 | GitHub Actions で `wrangler pages deploy` |
+|               | 手段 A                              | 手段 B                                    |
+| ------------- | ----------------------------------- | ----------------------------------------- |
+| API (Workers) | GitHub Actions で `wrangler deploy` | （Pages のような GitHub 連携機能は無し）  |
+| Web (Pages)   | Cloudflare Pages の GitHub 連携     | GitHub Actions で `wrangler pages deploy` |
 
 推奨:
 
@@ -65,9 +65,14 @@
 
 ### 4. PR 時の CI（プッシュ前チェック）
 
-- `pnpm typecheck`（必須）
-- 任意: `pnpm --filter @birthdaypapers/web build`
-- 任意: `lint`
+`.github/workflows/ci.yml` の `check` ジョブで、`pnpm install --frozen-lockfile` の後に以下を順次実行する。安価な検査から先に失敗させる方針。
+
+- `pnpm format:check` — Prettier の整形チェック。詳細は [prettier.md](./prettier.md)。
+- `pnpm lint` — ESLint。詳細は [linter.md](./linter.md)。
+- `pnpm typecheck` — `tsc --noEmit` を全 workspace で再帰実行。
+- `pnpm --filter @birthdaypapers/web build` — Vite ビルド（`VITE_API_URL` を Repo Variable から注入）。
+
+別途 `secret-scan` ジョブで gitleaks も並列実行している。詳細は [gitleaks.md](./gitleaks.md)。
 
 ### 5. プレビュー環境
 
@@ -80,11 +85,11 @@
 
 ## 決定事項（埋めていく）
 
-| 項目 | 決定 |
-|---|---|
-| ブランチ戦略 | A: `main` + `develop` + `feature/*` の三ブランチ構成 |
-| Web デプロイ手段 | B: GitHub Actions で `wrangler pages deploy`（PR プレビューは当面なし） |
-| API プレビュー環境 | 当面は作らない（後から追加可能） |
+| 項目               | 決定                                                                    |
+| ------------------ | ----------------------------------------------------------------------- |
+| ブランチ戦略       | A: `main` + `develop` + `feature/*` の三ブランチ構成                    |
+| Web デプロイ手段   | B: GitHub Actions で `wrangler pages deploy`（PR プレビューは当面なし） |
+| API プレビュー環境 | 当面は作らない（後から追加可能）                                        |
 
 ## 実装手順（決定後に詳細化）
 

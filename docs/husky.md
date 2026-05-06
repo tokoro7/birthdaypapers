@@ -14,7 +14,12 @@ git フックを管理するためのツール。pre-commit で gitleaks を走�
 
 ## pre-commit の中身
 
-`.husky/pre-commit` で gitleaks のステージ差分スキャンを実行する。詳細は [gitleaks.md](./gitleaks.md)。
+`.husky/pre-commit` で以下を順に実行する。
+
+1. `pnpm exec lint-staged` — staged ファイルを Prettier で整形（書き換え後は自動で再 stage）。詳細は [prettier.md](./prettier.md)。
+2. `gitleaks protect --staged --redact --verbose` — シークレット検出。詳細は [gitleaks.md](./gitleaks.md)。
+
+整形を先にする理由は、整形後の最終内容に対して gitleaks をかけるため。
 
 ## セットアップ手順（新規 clone 時）
 
@@ -54,4 +59,4 @@ git commit --no-verify -m "..."
 ## 既知の制約 / 拡張ポイント
 
 - 現状 pre-commit のみ。pre-push や commit-msg は未使用。導入する場合は `.husky/<hook名>` を新規作成するだけ。
-- lint-staged との併用は未導入。pre-commit で `pnpm lint` を流すなら追加検討余地あり。ただし全ファイル lint は重いので、入れるなら lint-staged で staged 分のみに絞るのが現実的。
+- lint-staged は Prettier 整形のみで運用中。`pnpm lint` (ESLint) は CI 側に任せている。pre-commit で ESLint も流したい場合は `lint-staged` 設定に `eslint --fix` を追加する形で拡張可能。
