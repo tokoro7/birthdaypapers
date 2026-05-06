@@ -65,9 +65,14 @@
 
 ### 4. PR 時の CI（プッシュ前チェック）
 
-- `pnpm typecheck`（必須）
-- 任意: `pnpm --filter @birthdaypapers/web build`
-- 任意: `lint`
+`.github/workflows/ci.yml` の `check` ジョブで、`pnpm install --frozen-lockfile` の後に以下を順次実行する。安価な検査から先に失敗させる方針。
+
+- `pnpm format:check` — Prettier の整形チェック。詳細は [prettier.md](./prettier.md)。
+- `pnpm lint` — ESLint。詳細は [linter.md](./linter.md)。
+- `pnpm typecheck` — `tsc --noEmit` を全 workspace で再帰実行。
+- `pnpm --filter @birthdaypapers/web build` — Vite ビルド（`VITE_API_URL` を Repo Variable から注入）。
+
+別途 `secret-scan` ジョブで gitleaks も並列実行している。詳細は [gitleaks.md](./gitleaks.md)。
 
 ### 5. プレビュー環境
 
