@@ -1,3 +1,5 @@
+pnpm exec lint-staged
+
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "Error: gitleaks is not installed."
   echo "Install: brew install gitleaks  (macOS)"
