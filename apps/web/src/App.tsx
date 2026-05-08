@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Article, DigestResponse } from '@birthdaypapers/shared';
 import { client } from './api';
+import { getTurnstileToken, mountTurnstileWidget } from './turnstile';
 import { BackgroundVideo } from './BackgroundVideo';
 import './App.css';
 
@@ -10,11 +11,27 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [digest, setDigest] = useState<DigestResponse | null>(null);
   const [articleMap, setArticleMap] = useState<Map<string, Article>>(new Map());
+  const turnstileRef = useRef<HTMLDivElement>(null);
+  const mountedContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = turnstileRef.current;
+    if (!container) return;
+    if (mountedContainerRef.current === container) return;
+    mountedContainerRef.current = container;
+    mountTurnstileWidget(container).catch((e) => {
+      console.error('Turnstile mount failed', e);
+    });
+  }, []);
 
   const fetchArticles = async (target: string): Promise<Article[]> => {
     const maxAttempts = 6;
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const res = await client.articles.$get({ query: { date: target } });
+      const token = await getTurnstileToken();
+      const res = await client.articles.$get(
+        { query: { date: target } },
+        { headers: { 'cf-turnstile-response': token } },
+      );
       if (res.status === 200) {
         return (await res.json()) as Article[];
       }
@@ -39,16 +56,20 @@ function App() {
       const articles = await fetchArticles(target);
       setArticleMap(new Map(articles.map((a) => [a.id, a])));
 
-      const res = await client.digest.$post({
-        json: {
-          articles: articles.map((a) => ({
-            id: a.id,
-            headline: a.headline,
-            section: a.section,
-          })),
-          lang: 'ja',
+      const digestToken = await getTurnstileToken();
+      const res = await client.digest.$post(
+        {
+          json: {
+            articles: articles.map((a) => ({
+              id: a.id,
+              headline: a.headline,
+              section: a.section,
+            })),
+            lang: 'ja',
+          },
         },
-      });
+        { headers: { 'cf-turnstile-response': digestToken } },
+      );
       if (res.status !== 200) {
         throw new Error(`Digest HTTP ${res.status}`);
       }
@@ -66,7 +87,9 @@ function App() {
       <main className="page">
         <header className="hero">
           <h1>Birthday Papers</h1>
-          <p className="tagline">Discover the headlines from your special day.</p>
+          <p className="tagline">
+            Discover the headlines from your special day.
+          </p>
         </header>
 
         <section className="card">
@@ -76,45 +99,55 @@ function App() {
               value={date}
               onChange={(e) => setDate(e.target.value)}
             />
-            <button type="button" onClick={() => fetchDigest(date)} disabled={loading}>
+            <button
+              type="button"
+              onClick={() => fetchDigest(date)}
+              disabled={loading}
+            >
               {loading ? 'Loading...' : 'Fetch'}
             </button>
           </div>
-
-          {error && <p className="error">Error: {error}</p>}
-
-          {digest && (
-            <>
-              {digest.summary && (
-                <>
-                  <h2 className="section-title">要約</h2>
-                  <p className="digest-summary">{digest.summary}</p>
-                </>
-              )}
-              <h2 className="section-title">主な記事</h2>
-              <ul className="picks">
-                {digest.picks.map((p) => {
-                  const article = articleMap.get(p.id);
-                  if (!article) return null;
-                  return (
-                    <li key={p.id}>
-                      <a href={article.url} target="_blank" rel="noreferrer">
-                        {article.headline}
-                      </a>
-                      <p className="pick-summary">{p.summary}</p>
-                      <span className="meta">
-                        {article.source}
-                        {article.section ? ` / ${article.section}` : ''}
-                        {' / '}
-                        {article.date}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </>
-          )}
         </section>
+
+        <div ref={turnstileRef} className="turnstile" />
+
+        {(error || digest) && (
+          <section className="card">
+            {error && <p className="error">Error: {error}</p>}
+
+            {digest && (
+              <>
+                {digest.summary && (
+                  <>
+                    <h2 className="section-title">要約</h2>
+                    <p className="digest-summary">{digest.summary}</p>
+                  </>
+                )}
+                <h2 className="section-title">主な記事</h2>
+                <ul className="picks">
+                  {digest.picks.map((p) => {
+                    const article = articleMap.get(p.id);
+                    if (!article) return null;
+                    return (
+                      <li key={p.id}>
+                        <a href={article.url} target="_blank" rel="noreferrer">
+                          {article.headline}
+                        </a>
+                        <p className="pick-summary">{p.summary}</p>
+                        <span className="meta">
+                          {article.source}
+                          {article.section ? ` / ${article.section}` : ''}
+                          {' / '}
+                          {article.date}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </section>
+        )}
       </main>
     </>
   );

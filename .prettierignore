@@ -1,0 +1,6 @@
+**/dist/
+**/node_modules/
+**/.wrangler/
+**/worker-configuration.d.ts
+.husky/_/
+pnpm-lock.yaml

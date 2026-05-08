@@ -21,7 +21,8 @@ type NytArchiveResponse = {
 };
 
 const dayKey = (date: string) => `articles:nyt:${date}`;
-const fetchingKey = (date: string) => `articles:nyt:${date.slice(0, 7)}:fetching`;
+const fetchingKey = (date: string) =>
+  `articles:nyt:${date.slice(0, 7)}:fetching`;
 
 const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
   const byDay = new Map<string, Article[]>();
@@ -46,8 +47,10 @@ const splitByDay = (data: NytArchiveResponse): Map<string, Article[]> => {
 
 const enumerateDays = (year: number, month: number): string[] => {
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return Array.from({ length: lastDay }, (_, i) =>
-    `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
+  return Array.from(
+    { length: lastDay },
+    (_, i) =>
+      `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`,
   );
 };
 
@@ -95,50 +98,50 @@ export const articlesApp = new OpenAPIHono<{ Bindings: Bindings }>({
       );
     }
   },
-}).openapi(
-  getArticlesByDateRoute,
-  async (c) => {
-    const { date } = c.req.valid('query');
+}).openapi(getArticlesByDateRoute, async (c) => {
+  const { date } = c.req.valid('query');
 
-    const cached = await c.env.ARTICLES_KV.get<Article[]>(dayKey(date), 'json');
-    if (cached) return c.json(cached, 200);
+  const cached = await c.env.ARTICLES_KV.get<Article[]>(dayKey(date), 'json');
+  if (cached) return c.json(cached, 200);
 
-    const isFetching = await c.env.ARTICLES_KV.get(fetchingKey(date));
-    if (isFetching) return c.json({ status: 'pending' as const }, 202);
+  const isFetching = await c.env.ARTICLES_KV.get(fetchingKey(date));
+  if (isFetching) return c.json({ status: 'pending' as const }, 202);
 
-    const apiKey = c.env.NYT_API_KEY;
-    if (!apiKey) {
-      return c.json({ error: 'NYT_API_KEY is not configured' }, 500);
-    }
+  const apiKey = c.env.NYT_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: 'NYT_API_KEY is not configured' }, 500);
+  }
 
-    await c.env.ARTICLES_KV.put(fetchingKey(date), '1', { expirationTtl: 60 });
+  await c.env.ARTICLES_KV.put(fetchingKey(date), '1', { expirationTtl: 60 });
 
-    c.executionCtx.waitUntil(
-      (async () => {
-        try {
-          const [year, month] = date.split('-').map(Number);
-          const url = new URL(
-            `https://api.nytimes.com/svc/archive/v1/${year}/${month}.json`,
-          );
-          url.searchParams.set('api-key', apiKey);
+  c.executionCtx.waitUntil(
+    (async () => {
+      try {
+        const [year, month] = date.split('-').map(Number);
+        const url = new URL(
+          `https://api.nytimes.com/svc/archive/v1/${year}/${month}.json`,
+        );
+        url.searchParams.set('api-key', apiKey);
 
-          const res = await fetch(url.toString());
-          if (!res.ok) return;
+        const res = await fetch(url.toString());
+        if (!res.ok) return;
 
-          const data = (await res.json()) as NytArchiveResponse;
-          const byDay = splitByDay(data);
-          const allDays = enumerateDays(year, month);
-          await Promise.all(
-            allDays.map((d) =>
-              c.env.ARTICLES_KV.put(dayKey(d), JSON.stringify(byDay.get(d) ?? [])),
+        const data = (await res.json()) as NytArchiveResponse;
+        const byDay = splitByDay(data);
+        const allDays = enumerateDays(year, month);
+        await Promise.all(
+          allDays.map((d) =>
+            c.env.ARTICLES_KV.put(
+              dayKey(d),
+              JSON.stringify(byDay.get(d) ?? []),
             ),
-          );
-        } finally {
-          await c.env.ARTICLES_KV.delete(fetchingKey(date));
-        }
-      })(),
-    );
+          ),
+        );
+      } finally {
+        await c.env.ARTICLES_KV.delete(fetchingKey(date));
+      }
+    })(),
+  );
 
-    return c.json({ status: 'pending' as const }, 202);
-  },
-);
+  return c.json({ status: 'pending' as const }, 202);
+});

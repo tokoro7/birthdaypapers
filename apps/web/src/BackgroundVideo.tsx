@@ -21,17 +21,15 @@ export function BackgroundVideo() {
   const [order] = useState(() => shuffled(VIDEOS));
   const [index, setIndex] = useState(0);
   const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
-  const slotRefs: [
-    React.RefObject<HTMLVideoElement | null>,
-    React.RefObject<HTMLVideoElement | null>,
-  ] = [useRef<HTMLVideoElement>(null), useRef<HTMLVideoElement>(null)];
+  const slot0Ref = useRef<HTMLVideoElement>(null);
+  const slot1Ref = useRef<HTMLVideoElement>(null);
   const [sources, setSources] = useState<[string, string]>([
     order[0],
     order[1 % order.length],
   ]);
 
   useEffect(() => {
-    const current = slotRefs[activeSlot].current;
+    const current = (activeSlot === 0 ? slot0Ref : slot1Ref).current;
     if (!current) return;
     const handleEnded = () => {
       const nextIndex = (index + 1) % order.length;
@@ -41,7 +39,7 @@ export function BackgroundVideo() {
 
       setIndex(nextIndex);
       setActiveSlot(nextSlot);
-      const nextEl = slotRefs[nextSlot].current;
+      const nextEl = (nextSlot === 0 ? slot0Ref : slot1Ref).current;
       if (nextEl) {
         nextEl.currentTime = 0;
         void nextEl.play();
@@ -62,7 +60,7 @@ export function BackgroundVideo() {
   return (
     <div className="bg-video">
       <video
-        ref={slotRefs[0]}
+        ref={slot0Ref}
         src={sources[0]}
         autoPlay
         muted
@@ -71,7 +69,7 @@ export function BackgroundVideo() {
         className={activeSlot === 0 ? 'is-active' : ''}
       />
       <video
-        ref={slotRefs[1]}
+        ref={slot1Ref}
         src={sources[1]}
         muted
         playsInline
