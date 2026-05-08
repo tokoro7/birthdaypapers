@@ -21,6 +21,7 @@ jobs:
       - run: pnpm --filter @birthdaypapers/web build
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
       - name: Deploy to Pages
         run: pnpm --filter @birthdaypapers/api exec wrangler pages deploy ../web/dist --project-name=birthdaypapers --branch=main
         env:
