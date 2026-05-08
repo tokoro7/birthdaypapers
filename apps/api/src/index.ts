@@ -3,6 +3,7 @@ import { swaggerUI } from '@hono/swagger-ui';
 import { cors } from 'hono/cors';
 import { articlesApp } from './routes/articles';
 import { digestApp } from './routes/digest';
+import { turnstile } from './middlewares/turnstile';
 import type { Bindings } from './bindings';
 
 const app = new OpenAPIHono<{ Bindings: Bindings }>();
@@ -12,6 +13,9 @@ app.use('/*', (c, next) =>
     origin: (origin) => (origin === c.env.ALLOWED_ORIGIN ? origin : null),
   })(c, next),
 );
+
+app.use('/articles', turnstile);
+app.use('/digest', turnstile);
 
 const _routes = app.route('/', articlesApp).route('/', digestApp);
 
