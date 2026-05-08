@@ -16,14 +16,17 @@
 
 ## 採用方針
 
-Cloudflare Turnstile（invisible モード）を Web フロントに埋め込み、API 側でトークンを検証する。
+Cloudflare Turnstile（managed モード、visible widget）を Web フロントに埋め込み、API 側でトークンを検証する。
+
+> 当初は invisible モードを想定していたが、UI 上の保護表示があったほうが好ましいという判断で managed モード（チェックボックス相当の visible widget）に変更。managed は通常クリック不要で auto pass し、bot 疑いがある場合のみ interactive challenge が走る。
 
 ### 動作フロー
 
-1. Web 起動時に Turnstile widget を invisible モードで実行し、トークンを取得する（短期間で失効するため、API 呼び出し直前に都度発行する設計）。
-2. Web は API リクエストに `cf-turnstile-response` ヘッダ（or リクエストボディ）を載せる。
-3. API は受信したトークンを `https://challenges.cloudflare.com/turnstile/v0/siteverify` に POST し、`success: true` を確認したうえで本処理に進む。失敗時は 403 を返す。
-4. Turnstile sitekey 側で **Allowed hostnames** を本番 / プレビュー Pages ドメインに限定する。これにより sitekey を流用したトークン横取り発行を防ぐ。
+1. Web 起動時に Turnstile widget を可視で `render()` する。widget は自動で検証を走らせ、最初のトークンを callback 経由で受け取りキャッシュする。
+2. API 呼び出し時に最新トークンを取り出してヘッダに載せる。トークンは single-use のため、消費後は `turnstile.reset()` で次のトークン発行をトリガし、後続呼び出しに備える。
+3. Web は API リクエストに `cf-turnstile-response` ヘッダ（or リクエストボディ）を載せる。
+4. API は受信したトークンを `https://challenges.cloudflare.com/turnstile/v0/siteverify` に POST し、`success: true` を確認したうえで本処理に進む。失敗時は 403 を返す。
+5. Turnstile sitekey 側で **Allowed hostnames** を本番 / プレビュー Pages ドメインに限定する。これにより sitekey を流用したトークン横取り発行を防ぐ。
 
 ### 設計の論点
 
@@ -43,13 +46,13 @@ Cloudflare Turnstile（invisible モード）を Web フロントに埋め込み
 
 候補:
 
-- **A. API 呼び出し直前に都度 `turnstile.execute()`**
-  - トークン失効（〜5分）と single-use 制約を素直にクリアできる。
+- **A. アプリ起動時に widget を `render()`、callback で受け取ったトークンをキャッシュ。API 呼び出しごとに消費し、消費後は `turnstile.reset()` で次のトークン発行を起動**
+  - managed モードでは widget が render 後に自動検証を走らせる。reset() を呼べば再検証が走り、新しいトークンが callback で得られる。single-use 制約と失効（〜5分）を素直にクリアできる。
   - 採用。
 - **B. アプリ起動時に一度だけ取得して使い回す**
   - single-use のため二度目の API 呼び出しで失敗する。不可。
 
-**採用**: A。`apps/web/src/api.ts` で fetch 直前に `window.turnstile.execute()` を await し、ヘッダに載せる。
+**採用**: A。`apps/web/src/turnstile.ts` で widget を mount し、内部キュー経由でトークンを払い出す `getTurnstileToken()` を提供。`apps/web/src/App.tsx` の RPC 呼び出し直前で await して `cf-turnstile-response` ヘッダに載せる。
 
 #### 3. 検証 API の呼び出し位置（API 側）
 
@@ -92,7 +95,7 @@ GitHub Actions:
 ## 実装手順
 
 1. Cloudflare Dashboard で Turnstile widget を作成。
-   - Mode: Invisible
+   - Widget Mode: Managed（visible 表示。auto pass を基本とし、必要に応じて interactive challenge を出す）
    - Allowed hostnames: `birthdaypapers.pages.dev`, （プレビュードメイン）, `localhost`
    - Sitekey と Secret key を控える（後者は GitHub / Cloudflare 側のみに保存）。
 2. API 側:
@@ -103,8 +106,8 @@ GitHub Actions:
    5. 本番には `wrangler secret put TURNSTILE_SECRET_KEY` で投入。
 3. Web 側:
    1. `index.html` に Turnstile loader script (`https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit`) を追加。
-   2. `apps/web/src/api.ts`（または専用フック）で sitekey を読み、`window.turnstile.execute()` でトークンを取得するヘルパを追加。
-   3. `client.articles.$get` / `client.digest.$post` 呼び出しを、ヘッダに `cf-turnstile-response` を載せるよう改修。Hono RPC client の `init`（第二引数）で `headers` を渡す。
+   2. `apps/web/src/turnstile.ts` を新規作成。`mountTurnstileWidget(container)` で widget を render し、`getTurnstileToken()` で次の single-use トークンを返すヘルパを export。reset() による再発行と waiter キューを内部で管理する。
+   3. `apps/web/src/App.tsx` の controls 内に widget container 用 `<div>` を置き、`useEffect` で `mountTurnstileWidget` を呼ぶ。`client.articles.$get` / `client.digest.$post` 呼び出しを、Hono RPC client の `init`（第二引数）で `headers: { 'cf-turnstile-response': await getTurnstileToken() }` を渡すよう改修。
    4. `apps/web/.env.development` にテスト用 sitekey を追記、`.env.production` の扱いは GitHub Actions 側で注入。
 4. CI / デプロイ:
    1. GitHub Repository Variables に `VITE_TURNSTILE_SITE_KEY`（本番値）を登録。
